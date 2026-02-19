@@ -22,22 +22,22 @@ Fetch URLs, search the web, extract structured data, take screenshots, deep craw
 ## Installation
 
 ```bash
-bunx opencode-crawl4ai
+bunx opencode-crawl4ai --install
 ```
 
 Or with npx:
 
 ```bash
-npx opencode-crawl4ai
+npx opencode-crawl4ai --install
 ```
 
-That's it. The plugin is copied to `~/.config/opencode/plugins/` and auto-loaded by OpenCode. Restart OpenCode to activate.
+Copies the plugin to `~/.config/opencode/plugins/`. Restart OpenCode to activate.
 
-To install globally instead:
+To install globally:
 
 ```bash
 npm install -g opencode-crawl4ai
-opencode-crawl4ai
+opencode-crawl4ai --install
 ```
 
 ### Optional: faster search with SearXNG
@@ -52,9 +52,8 @@ SearXNG aggregates Google, Bing, DuckDuckGo, and more. Without it, the plugin fa
 ## CLI Commands
 
 ```
-opencode-crawl4ai --install       Install plugin (copy to ~/.config/opencode/plugins/)
+opencode-crawl4ai --install       Copy plugin to ~/.config/opencode/plugins/
 opencode-crawl4ai --uninstall     Remove plugin
-opencode-crawl4ai --status        Show plugin and SearXNG status
 opencode-crawl4ai searxng [port]  Start SearXNG Docker container (default: 8888)
 opencode-crawl4ai searxng-stop    Stop SearXNG container
 opencode-crawl4ai --help          Show help
