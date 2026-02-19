@@ -22,11 +22,23 @@ Fetch URLs, search the web, extract structured data, take screenshots, deep craw
 ## Installation
 
 ```bash
-npm install -g opencode-crawl4ai
-opencode-crawl4ai --install
+bunx opencode-crawl4ai
 ```
 
-Then restart OpenCode. The plugin is auto-loaded from `~/.config/opencode/plugins/`.
+Or with npx:
+
+```bash
+npx opencode-crawl4ai
+```
+
+That's it. The plugin is copied to `~/.config/opencode/plugins/` and auto-loaded by OpenCode. Restart OpenCode to activate.
+
+To install globally instead:
+
+```bash
+npm install -g opencode-crawl4ai
+opencode-crawl4ai
+```
 
 ### Optional: faster search with SearXNG
 

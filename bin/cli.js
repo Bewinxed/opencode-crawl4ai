@@ -128,6 +128,7 @@ async function showHelp() {
 Usage: opencode-crawl4ai [command] [options]
 
 Commands:
+  (no args)       Install plugin (same as --install)
   --install       Copy plugin to ~/.config/opencode/plugins/ (auto-loaded by OpenCode)
   --uninstall     Remove plugin from ~/.config/opencode/plugins/
   --status        Show plugin and SearXNG status
@@ -136,9 +137,12 @@ Commands:
   --help, -h      Show this help
 
 Examples:
-  # Install and activate
-  npm i -g opencode-crawl4ai
-  opencode-crawl4ai --install
+  # One-shot install (no global install needed)
+  bunx opencode-crawl4ai
+  npx opencode-crawl4ai
+
+  # Or install globally
+  npm i -g opencode-crawl4ai && opencode-crawl4ai
 
   # Optional: faster search with SearXNG
   opencode-crawl4ai searxng
@@ -167,8 +171,10 @@ async function main() {
       break;
     case "--help":
     case "-h":
-    case undefined:
       await showHelp();
+      break;
+    case undefined:
+      await install();
       break;
     default:
       console.error(`Unknown command: ${arg}\n`);
