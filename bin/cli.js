@@ -1,25 +1,58 @@
 #!/usr/bin/env node
-/**
- * OpenCode Crawl4AI CLI
- * 
- * Commands:
- *   setup   - Set up SearXNG Docker container for better search
- *   status  - Check SearXNG status
- */
 
-const { execSync } = require("child_process");
+import { existsSync } from "node:fs";
+import { copyFile, mkdir, readFile, unlink } from "node:fs/promises";
+import { execSync } from "node:child_process";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const SEARXNG_CONTAINER_NAME = "opencode-crawl4ai-searxng";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pluginsDir = join(homedir(), ".config", "opencode", "plugins");
+const pluginSource = join(__dirname, "..", "dist", "plugin.js");
+const pluginTarget = join(pluginsDir, "crawl4ai.js");
+const packageJson = join(__dirname, "..", "package.json");
+
+const SEARXNG_CONTAINER = "opencode-crawl4ai-searxng";
 const SEARXNG_DEFAULT_PORT = 8888;
-const SEARXNG_IMAGE = "searxng/searxng:latest";
 
-function log(msg) {
-  console.log(`[opencode-crawl4ai] ${msg}`);
+async function getVersion() {
+  const pkg = JSON.parse(await readFile(packageJson, "utf-8"));
+  return pkg.version;
 }
 
-function error(msg) {
-  console.error(`[opencode-crawl4ai] ERROR: ${msg}`);
-  process.exit(1);
+async function install() {
+  const version = await getVersion();
+  console.log(`Installing opencode-crawl4ai v${version}...\n`);
+
+  if (!existsSync(pluginSource)) {
+    console.error(`Error: Built plugin not found at ${pluginSource}`);
+    console.error("This shouldn't happen with a published package. Try reinstalling.");
+    process.exit(1);
+  }
+
+  await mkdir(pluginsDir, { recursive: true });
+  await copyFile(pluginSource, pluginTarget);
+  console.log(`✓ Plugin installed to: ${pluginTarget}`);
+  console.log("\nInstallation complete! Restart OpenCode to activate the plugin.");
+  console.log("\nAvailable tools: crawl4ai_fetch, crawl4ai_search, crawl4ai_extract,");
+  console.log("                 crawl4ai_screenshot, crawl4ai_crawl, crawl4ai_map");
+  console.log("\nOptional: run 'opencode-crawl4ai searxng' to set up faster search.");
+}
+
+async function uninstall() {
+  console.log("Uninstalling opencode-crawl4ai...\n");
+
+  if (!existsSync(pluginTarget)) {
+    console.log("Plugin not found at", pluginTarget);
+    console.log("Nothing to uninstall.");
+    return;
+  }
+
+  await unlink(pluginTarget);
+  console.log(`✓ Removed: ${pluginTarget}`);
+  console.log("\nUninstall complete! Restart OpenCode to deactivate.");
+  console.log("To fully remove: npm uninstall -g opencode-crawl4ai");
 }
 
 function isDockerRunning() {
@@ -34,142 +67,117 @@ function isDockerRunning() {
 function isSearXNGRunning() {
   try {
     const result = execSync(
-      `docker ps --filter name=${SEARXNG_CONTAINER_NAME} --format {{.Names}}`,
+      `docker ps --filter name=${SEARXNG_CONTAINER} --format {{.Names}}`,
       { stdio: ["pipe", "pipe", "pipe"] }
     ).toString().trim();
-    return result === SEARXNG_CONTAINER_NAME;
+    return result === SEARXNG_CONTAINER;
   } catch {
     return false;
   }
 }
 
-function getExistingContainerPort() {
-  try {
-    const result = execSync(
-      `docker port ${SEARXNG_CONTAINER_NAME} 8080/tcp`,
-      { stdio: ["pipe", "pipe", "pipe"] }
-    ).toString().trim();
-    const match = result.match(/:(\d+)$/);
-    return match ? parseInt(match[1], 10) : null;
-  } catch {
-    return null;
-  }
-}
-
 function startSearXNG(port) {
-  log(`Starting SearXNG on port ${port}...`);
-  
+  if (!isDockerRunning()) {
+    console.error("Error: Docker is not running. Please start Docker first.");
+    process.exit(1);
+  }
+
+  console.log(`Starting SearXNG on port ${port}...`);
   try {
-    // Remove existing container if stopped
-    execSync(`docker rm -f ${SEARXNG_CONTAINER_NAME} 2>/dev/null`, { stdio: "pipe" });
-    
-    // Start new container
+    execSync(`docker rm -f ${SEARXNG_CONTAINER} 2>/dev/null || true`, { stdio: "pipe" });
     execSync(
-      `docker run -d --name ${SEARXNG_CONTAINER_NAME} ` +
-      `-p ${port}:8080 ` +
-      `--restart unless-stopped ` +
-      SEARXNG_IMAGE,
+      `docker run -d --name ${SEARXNG_CONTAINER} -p ${port}:8080 --restart unless-stopped searxng/searxng:latest`,
       { stdio: "inherit" }
     );
-    
-    log(`SearXNG started successfully at http://localhost:${port}`);
-    log(`Set SEARXNG_URL=http://localhost:${port} for the plugin to use it.`);
+    console.log(`\n✓ SearXNG started at http://localhost:${port}`);
+    console.log(`\nSet this env var for the plugin to use it:`);
+    console.log(`  export SEARXNG_URL=http://localhost:${port}`);
   } catch (err) {
-    error(`Failed to start SearXNG: ${err}`);
+    console.error(`Failed to start SearXNG: ${err.message}`);
+    process.exit(1);
   }
 }
 
 function stopSearXNG() {
-  log("Stopping SearXNG...");
-  
+  console.log("Stopping SearXNG...");
   try {
-    execSync(`docker stop ${SEARXNG_CONTAINER_NAME}`, { stdio: "pipe" });
-    execSync(`docker rm ${SEARXNG_CONTAINER_NAME}`, { stdio: "pipe" });
-    log("SearXNG stopped and removed.");
+    execSync(`docker stop ${SEARXNG_CONTAINER}`, { stdio: "pipe" });
+    execSync(`docker rm ${SEARXNG_CONTAINER}`, { stdio: "pipe" });
+    console.log("✓ SearXNG stopped.");
   } catch {
-    log("SearXNG container not found or already stopped.");
+    console.log("SearXNG container not found or already stopped.");
   }
 }
 
 function showStatus() {
-  console.log("\n=== OpenCode Crawl4AI Status ===\n");
-  
-  // Check Docker
-  if (isDockerRunning()) {
-    log("✓ Docker is running");
-  } else {
-    log("✗ Docker is not running");
+  const running = isSearXNGRunning();
+  console.log("\n=== opencode-crawl4ai status ===\n");
+  console.log(`Plugin:   ${existsSync(pluginTarget) ? "✓ installed" : "✗ not installed"} (${pluginTarget})`);
+  console.log(`SearXNG:  ${running ? "✓ running" : "✗ not running"}`);
+  if (running) {
+    const searxngUrl = process.env.SEARXNG_URL || `http://localhost:${SEARXNG_DEFAULT_PORT}`;
+    console.log(`  URL: ${searxngUrl}`);
   }
-  
-  // Check SearXNG
-  if (isSearXNGRunning()) {
-    const port = getExistingContainerPort() || SEARXNG_DEFAULT_PORT;
-    log(`✓ SearXNG is running on port ${port}`);
-    log(`  URL: http://localhost:${port}`);
-    log(`  Set: export SEARXNG_URL=http://localhost:${port}`);
-  } else {
-    log("✗ SearXNG is not running");
-    log("  Run: npx @bewinxed/opencode-crawl4ai setup");
-  }
-  
   console.log("");
 }
 
-function showHelp() {
-  console.log(`
-OpenCode Crawl4AI - Web crawling and search plugin for OpenCode
+async function showHelp() {
+  const version = await getVersion();
+  console.log(`opencode-crawl4ai v${version}
 
-Usage:
-  npx @bewinxed/opencode-crawl4ai <command>
+Usage: opencode-crawl4ai [command] [options]
 
 Commands:
-  setup [port]    Start SearXNG Docker container (default port: ${SEARXNG_DEFAULT_PORT})
-  stop            Stop SearXNG container
-  status          Show status of SearXNG and configuration
-  help            Show this help message
-
-Environment Variables:
-  SEARXNG_URL     URL of SearXNG instance (default: uses Docker container if running)
+  --install       Copy plugin to ~/.config/opencode/plugins/ (auto-loaded by OpenCode)
+  --uninstall     Remove plugin from ~/.config/opencode/plugins/
+  --status        Show plugin and SearXNG status
+  searxng [port]  Start SearXNG Docker container for faster search (default port: ${SEARXNG_DEFAULT_PORT})
+  searxng-stop    Stop SearXNG container
+  --help, -h      Show this help
 
 Examples:
-  npx @bewinxed/opencode-crawl4ai setup
-  npx @bewinxed/opencode-crawl4ai setup 9000
-  SEARXNG_URL=http://searxng.local:8080 npx @bewinxed/opencode-crawl4ai status
+  # Install and activate
+  npm i -g opencode-crawl4ai
+  opencode-crawl4ai --install
+
+  # Optional: faster search with SearXNG
+  opencode-crawl4ai searxng
+  export SEARXNG_URL=http://localhost:${SEARXNG_DEFAULT_PORT}
 `);
 }
 
-function main() {
-  const args = process.argv.slice(2);
-  const command = args[0] || "help";
-  const port = args[1] ? parseInt(args[1], 10) : SEARXNG_DEFAULT_PORT;
-  
-  switch (command) {
-    case "setup":
-    case "install":
-      if (!isDockerRunning()) {
-        error("Docker is not running. Please start Docker first.");
-      }
-      startSearXNG(port);
+async function main() {
+  const arg = process.argv[2];
+
+  switch (arg) {
+    case "--install":
+      await install();
       break;
-    
-    case "stop":
-    case "uninstall":
-      stopSearXNG();
+    case "--uninstall":
+      await uninstall();
       break;
-    
-    case "status":
+    case "--status":
       showStatus();
       break;
-    
-    case "help":
+    case "searxng":
+      startSearXNG(parseInt(process.argv[3] || String(SEARXNG_DEFAULT_PORT), 10));
+      break;
+    case "searxng-stop":
+      stopSearXNG();
+      break;
     case "--help":
     case "-h":
-      showHelp();
+    case undefined:
+      await showHelp();
       break;
-    
     default:
-      error(`Unknown command: ${command}. Run 'npx @bewinxed/opencode-crawl4ai help' for usage.`);
+      console.error(`Unknown command: ${arg}\n`);
+      await showHelp();
+      process.exit(1);
   }
 }
 
-main();
+main().catch((err) => {
+  console.error("Error:", err.message);
+  process.exit(1);
+});

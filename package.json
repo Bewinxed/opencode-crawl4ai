@@ -1,7 +1,7 @@
 {
-  "name": "@bewinxed/opencode-crawl4ai",
+  "name": "opencode-crawl4ai",
   "version": "0.1.0",
-  "description": "OpenCode plugin for web crawling and search using crawl4ai",
+  "description": "OpenCode plugin for unrestricted web access via crawl4ai — fetch, search, extract, screenshot, crawl, map",
   "type": "module",
   "main": "./dist/plugin.js",
   "exports": {
@@ -17,13 +17,14 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun build src/plugin.ts --target=node --outfile=dist/plugin.js",
-    "dev": "bun build src/plugin.ts --target=node --outfile=dist/plugin.js --watch",
+    "build": "bun build src/plugin.ts --target=bun --outfile=dist/plugin.js",
+    "dev": "bun build src/plugin.ts --target=bun --outfile=dist/plugin.js --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
     "opencode",
+    "opencode-plugin",
     "crawl4ai",
     "web-crawling",
     "web-scraping",
@@ -31,14 +32,25 @@
     "ai",
     "llm"
   ],
-  "author": "",
+  "author": "bewinxed",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bewinxed/opencode-crawl4ai.git"
+  },
+  "homepage": "https://github.com/bewinxed/opencode-crawl4ai#readme",
+  "bugs": {
+    "url": "https://github.com/bewinxed/opencode-crawl4ai/issues"
+  },
   "peerDependencies": {
-    "@opencode-ai/plugin": ">=0.0.1"
+    "@opencode-ai/plugin": ">=1.0.0"
   },
   "devDependencies": {
+    "@opencode-ai/plugin": "latest",
     "@types/node": "^22.0.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "zod": "^4.3.5"
+  }
 }

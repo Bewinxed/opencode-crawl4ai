@@ -228,7 +228,7 @@ Examples:
 - Extract product info: crawl4ai_extract({ url: "...", schema: { title: "h1.product-name", price: ".price" } })`,
         args: {
           url: schema.string().describe("The URL to extract from"),
-          schema: schema.record(schema.string()).describe("Object mapping field names to CSS selectors"),
+          schema: schema.record(schema.string(), schema.string()).describe("Object mapping field names to CSS selectors"),
         },
         async execute({ url, schema }) {
           const result = await executeBridge({

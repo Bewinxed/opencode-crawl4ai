@@ -1,173 +1,132 @@
-# @bewinxed/opencode-crawl4ai
+# opencode-crawl4ai
 
-OpenCode plugin for unrestricted web access. Fetch URLs, search the web, extract data - all without hitting LLM guardrails.
+OpenCode plugin that gives AI agents unrestricted web access via [crawl4ai](https://github.com/unclecode/crawl4ai).
+
+Fetch URLs, search the web, extract structured data, take screenshots, deep crawl sites, and discover URLs — all from inside OpenCode.
 
 ## Features
 
-- **Fetch** - Retrieve any URL as markdown/HTML with stealth mode
-- **Search** - Web search via SearXNG (primary) or DuckDuckGo (fallback)
-- **Extract** - Structured data extraction using CSS selectors
-- **Screenshot** - Capture page screenshots
-- **Crawl** - Deep crawl websites with BFS/DFS strategies
-- **Map** - Discover all URLs on a site
+- **Fetch** — Retrieve any URL as clean markdown or raw HTML, with stealth mode and JS execution
+- **Search** — Web search via SearXNG (primary) or DuckDuckGo (fallback, no setup needed)
+- **Extract** — Structured data extraction using CSS selectors
+- **Screenshot** — Capture full-page screenshots as base64
+- **Crawl** — Deep crawl websites with BFS/DFS strategies
+- **Map** — Discover all URLs on a site
+
+## Requirements
+
+- [OpenCode](https://github.com/sst/opencode)
+- Python 3.10+ with `uvx` (`pip install uv`)
+- Docker (optional, for SearXNG faster search)
 
 ## Installation
 
 ```bash
-npm install @bewinxed/opencode-crawl4ai
+npm install -g opencode-crawl4ai
+opencode-crawl4ai --install
 ```
 
-Or use with npx (no install needed):
+Then restart OpenCode. The plugin is auto-loaded from `~/.config/opencode/plugins/`.
+
+### Optional: faster search with SearXNG
 
 ```bash
-npx @bewinxed/opencode-crawl4ai setup
+opencode-crawl4ai searxng          # starts SearXNG on port 8888
+export SEARXNG_URL=http://localhost:8888
 ```
 
-## Setup
+SearXNG aggregates Google, Bing, DuckDuckGo, and more. Without it, the plugin falls back to DuckDuckGo directly.
 
-### Basic (DuckDuckGo search)
+## CLI Commands
 
-No setup required. The plugin will use DuckDuckGo for search, which works out of the box.
-
-### Better Search (SearXNG)
-
-For better search results, set up SearXNG:
-
-```bash
-# Start SearXNG Docker container
-npx @bewinxed/opencode-crawl4ai setup
-
-# Or specify a custom port
-npx @bewinxed/opencode-crawl4ai setup 9000
+```
+opencode-crawl4ai --install       Install plugin (copy to ~/.config/opencode/plugins/)
+opencode-crawl4ai --uninstall     Remove plugin
+opencode-crawl4ai --status        Show plugin and SearXNG status
+opencode-crawl4ai searxng [port]  Start SearXNG Docker container (default: 8888)
+opencode-crawl4ai searxng-stop    Stop SearXNG container
+opencode-crawl4ai --help          Show help
 ```
 
-This starts a SearXNG container that aggregates Google, Bing, DuckDuckGo, etc.
+## Available Tools
 
-## Plugin Registration
-
-### Option A: Local file (for development / self-use)
-
-Copy or symlink `dist/plugin.js` into your project's `.opencode/plugins/` directory. OpenCode auto-discovers `*.js` files there:
-
-```bash
-# From your project root
-mkdir -p .opencode/plugins
-ln -s /path/to/opencode-crawl4ai/dist/plugin.js .opencode/plugins/crawl4ai.js
-```
-
-### Option B: npm package (in `opencode.json`)
-
-Add to your project's `opencode.json` (or `~/.config/opencode/opencode.json` for global):
-
-```json
-{
-  "plugin": ["@bewinxed/opencode-crawl4ai"]
-}
-```
-
-## Usage in OpenCode
-
-Once registered, the plugin provides these tools to the AI:
+Once installed, these tools are available to the AI in OpenCode:
 
 ### `crawl4ai_fetch`
 
-Fetch a URL and return content.
+Fetch a URL and return its content as markdown (default) or HTML.
 
-```javascript
-// Basic fetch (returns markdown)
+```js
 crawl4ai_fetch({ url: "https://docs.example.com" })
-
-// Get raw HTML
 crawl4ai_fetch({ url: "https://example.com", format: "html" })
-
-// Wait for dynamic content
-crawl4ai_fetch({ 
-  url: "https://spa.example.com", 
-  wait_for: ".content-loaded" 
-})
-
-// Execute JavaScript first
-crawl4ai_fetch({ 
-  url: "https://example.com",
-  js_code: "document.querySelector('.show-more').click()"
-})
+crawl4ai_fetch({ url: "https://spa.example.com", wait_for: ".content-loaded" })
+crawl4ai_fetch({ url: "https://example.com", js_code: "document.querySelector('.show-more').click()" })
 ```
 
 ### `crawl4ai_search`
 
-Search the web.
+Search the web and return results with URL, title, and snippet.
 
-```javascript
-// Basic search
+```js
 crawl4ai_search({ query: "React hooks tutorial" })
-
-// Limit results
 crawl4ai_search({ query: "Python asyncio", limit: 5 })
 ```
 
 ### `crawl4ai_extract`
 
-Extract structured data.
+Extract structured data from a URL using CSS selectors.
 
-```javascript
+```js
 crawl4ai_extract({
   url: "https://example.com/product",
-  schema: {
-    title: "h1.product-name",
-    price: ".price",
-    description: ".description"
-  }
+  schema: { title: "h1.product-name", price: ".price" }
 })
 ```
 
 ### `crawl4ai_screenshot`
 
-Take a screenshot.
+Take a screenshot of a web page. Returns base64-encoded image data URL.
 
-```javascript
-crawl4ai_screenshot({ 
-  url: "https://example.com",
-  width: 1920,
-  height: 1080
-})
+```js
+crawl4ai_screenshot({ url: "https://example.com" })
+crawl4ai_screenshot({ url: "https://example.com", width: 1920, height: 1080 })
 ```
 
 ### `crawl4ai_crawl`
 
-Deep crawl a site.
+Deep crawl a website starting from a URL, following links up to `max_pages` and `max_depth`.
 
-```javascript
-crawl4ai_crawl({
-  url: "https://docs.example.com",
-  max_pages: 20,
-  max_depth: 3,
-  strategy: "bfs"
-})
+```js
+crawl4ai_crawl({ url: "https://docs.example.com", max_pages: 20 })
+crawl4ai_crawl({ url: "https://example.com", strategy: "bfs", max_depth: 2 })
 ```
 
 ### `crawl4ai_map`
 
-Discover URLs on a site.
+Discover all URLs on a website.
 
-```javascript
-crawl4ai_map({
-  url: "https://example.com",
-  search: "pricing",
-  limit: 50
-})
+```js
+crawl4ai_map({ url: "https://example.com" })
+crawl4ai_map({ url: "https://example.com", search: "pricing" })
 ```
+
+### `crawl4ai_version`
+
+Get the installed crawl4ai version.
+
+### `crawl4ai_debug`
+
+Debug the plugin and bridge connection.
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SEARXNG_URL` | URL of SearXNG instance | Uses Docker container if running |
+| `SEARXNG_URL` | URL of a SearXNG instance | Falls back to DuckDuckGo |
 
-## Requirements
+## How It Works
 
-- Node.js 18+
-- Python 3.10+ (via uvx)
-- Docker (optional, for SearXNG)
+The plugin's TypeScript layer spawns a Python bridge (`uvx --with crawl4ai --with ddgs python bridge.py`) on each tool call. No persistent Python process is required.
 
 ## License
 
