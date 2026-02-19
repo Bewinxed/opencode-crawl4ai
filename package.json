@@ -8,7 +8,7 @@
     ".": "./dist/plugin.js"
   },
   "bin": {
-    "opencode-crawl4ai": "./bin/cli.js"
+    "opencode-crawl4ai": "bin/cli.js"
   },
   "files": [
     "dist",
@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bewinxed/opencode-crawl4ai.git"
+    "url": "git+https://github.com/bewinxed/opencode-crawl4ai.git"
   },
   "homepage": "https://github.com/bewinxed/opencode-crawl4ai#readme",
   "bugs": {
