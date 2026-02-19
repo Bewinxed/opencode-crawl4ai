@@ -1,0 +1,44 @@
+{
+  "name": "@bewinxed/opencode-crawl4ai",
+  "version": "0.1.0",
+  "description": "OpenCode plugin for web crawling and search using crawl4ai",
+  "type": "module",
+  "main": "./dist/plugin.js",
+  "exports": {
+    ".": "./dist/plugin.js"
+  },
+  "bin": {
+    "opencode-crawl4ai": "./bin/cli.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "python",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build src/plugin.ts --target=node --outfile=dist/plugin.js",
+    "dev": "bun build src/plugin.ts --target=node --outfile=dist/plugin.js --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "opencode",
+    "crawl4ai",
+    "web-crawling",
+    "web-scraping",
+    "search",
+    "ai",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}
