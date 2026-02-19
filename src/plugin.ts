@@ -39,20 +39,27 @@ interface BridgeResponse {
 }
 
 /**
- * Execute the Python bridge using uvx to run crawl4ai
+ * Execute the Python bridge — uses system python3 if crawl4ai is installed,
+ * otherwise falls back to uvx with crawl4ai bundled.
  */
 async function executeBridge(request: BridgeRequest): Promise<BridgeResponse> {
   return new Promise((resolve) => {
     const requestJson = JSON.stringify(request);
-    
-    // Use uvx to run the bridge script with crawl4ai and ddgs available
-    const proc = spawn("uvx", [
-      "--with", "crawl4ai",
-      "--with", "ddgs",
-      "--with", "beautifulsoup4",
-      "python",
-      PYTHON_BRIDGE_PATH,
-    ], {
+
+    // Auto-detect: use system python3 if crawl4ai is already installed, else uvx
+    let useSystem = false;
+    try {
+      const { execSync: execS } = require("child_process") as typeof import("child_process");
+      execS('python3 -c "import crawl4ai"', { stdio: "pipe" });
+      useSystem = true;
+    } catch { /* fall through to uvx */ }
+
+    const cmd = useSystem ? "python3" : "uvx";
+    const args = useSystem
+      ? [PYTHON_BRIDGE_PATH]
+      : ["--with", "crawl4ai", "--with", "ddgs", "--with", "beautifulsoup4", "python", PYTHON_BRIDGE_PATH];
+
+    const proc = spawn(cmd, args, {
       stdio: ["pipe", "pipe", "pipe"],
     });
 
